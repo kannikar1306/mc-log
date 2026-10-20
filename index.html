@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Machine Issue Log</title>
+<style>
+:root{--p1:#2C79D2;--p2:#0D8FCF;--bg:#F4F8FB;--text:#1A202C;--sec:#718096;--bd:#E2E8F0;--soft:#EDF2F7;--ok:#10B981;--ng:#D93025;--go:#F59E0B}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:var(--bg);color:var(--text);padding-bottom:40px;font-size:15px}
+.top{background:linear-gradient(120deg,var(--p1),var(--p2));color:#fff;padding:16px;position:relative}
+.top .prod{font-size:12px;opacity:.85}.top h1{font-size:20px;margin-top:2px}.top .code{font-size:13px;opacity:.9;font-family:Consolas,monospace}
+.lang{position:absolute;top:12px;right:12px;display:flex;border:1.5px solid rgba(255,255,255,.5);border-radius:16px;overflow:hidden}
+.lang button{background:none;border:none;color:#fff;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer}.lang button.on{background:rgba(255,255,255,.3)}
+.wrap{padding:14px;max-width:640px;margin:0 auto}
+.card{background:#fff;border:1px solid var(--bd);border-radius:14px;margin-bottom:16px;box-shadow:0 3px 14px rgba(26,32,44,.05);overflow:hidden}
+.ct{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--soft);font-weight:700}
+.badge{width:24px;height:24px;border-radius:50%;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(120deg,var(--p1),var(--p2))}
+.cb{padding:14px}
+label{display:block;font-size:12px;font-weight:700;color:var(--sec);margin:12px 0 5px}label:first-child{margin-top:0}
+input[type=text],textarea,select{width:100%;border:1px solid var(--bd);border-radius:8px;padding:10px;font:inherit;background:#fff;outline:none}
+input:focus,textarea:focus,select:focus{border-color:var(--p2);box-shadow:0 0 0 3px rgba(13,143,207,.12)}
+textarea{min-height:84px;resize:vertical}
+.photo-row{display:flex;gap:10px;align-items:center}
+.btn{border:none;border-radius:10px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer}
+.btn-p{background:linear-gradient(120deg,var(--p1),var(--p2));color:#fff;width:100%;margin-top:16px;font-size:16px}.btn-p:disabled{background:#CBD5E0}
+.btn-o{background:#fff;color:var(--p2);border:1.5px solid var(--p2);padding:9px 14px}
+.thumb{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--bd)}
+.st{display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
+.st.OK{background:var(--ok)}.st.NG{background:var(--ng)}.st.GO{background:var(--go)}
+.wait{font-size:11px;color:var(--go);font-weight:700}
+.chips{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.chip{border:1.5px solid var(--bd);background:#fff;border-radius:16px;padding:5px 12px;font-size:13px;cursor:pointer;font-weight:600;color:var(--sec)}.chip.on{border-color:var(--p2);color:var(--p2);background:#EBF6FC}
+.item{border:1px solid var(--bd);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.item-h{display:flex;gap:10px;padding:10px 12px;cursor:pointer;align-items:flex-start}
+.item-h .n{color:var(--sec);font-size:12px;min-width:22px;padding-top:2px}.item-h .q{flex:1;min-width:0}
+.item-h .q b{display:block;word-break:break-word}.item-h .q small{color:var(--sec);font-size:12px}
+.item-d{display:none;padding:12px;border-top:1px solid var(--soft);background:#FAFCFE}.item.open .item-d{display:block}
+.item-d img.big{width:100%;border-radius:8px;margin:6px 0;max-height:320px;object-fit:contain;background:#000}
+.k{font-size:11.5px;font-weight:700;color:var(--sec);margin-top:8px}.v{white-space:pre-wrap;word-break:break-word}
+.log{font-size:12px;color:var(--sec);margin-top:8px;border-top:1px dashed var(--bd);padding-top:6px}
+.chg{display:flex;gap:8px;margin-top:10px}.chg select{flex:1}
+.empty{text-align:center;color:var(--sec);padding:24px 0}
+.err{background:#FDECEA;color:#B71C1C;padding:16px;border-radius:10px;margin:14px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(80px);background:#1A202C;color:#fff;padding:11px 18px;border-radius:10px;font-size:14px;opacity:0;transition:.3s;z-index:9;max-width:90vw}
+.toast.show{transform:translateX(-50%);opacity:1}
+</style>
+</head>
+<body>
+<div class="top">
+  <div class="lang"><button id="lTH" onclick="setLang('th')">TH</button><button id="lEN" onclick="setLang('en')">EN</button></div>
+  <div class="prod" id="mProd"></div><h1 id="mName">…</h1><div class="code" id="mCode"></div>
+</div>
+<div class="wrap" id="app" style="display:none">
+  <div class="card">
+    <div class="ct"><span class="badge">1</span><span data-t="b1"></span></div>
+    <div class="cb">
+      <label data-t="question"></label><textarea id="fQ"></textarea>
+      <label data-t="photo"></label>
+      <div class="photo-row">
+        <input type="file" id="fPhoto" accept="image/*" capture="environment" hidden>
+        <button class="btn btn-o" type="button" onclick="$('fPhoto').click()" data-t="takePhoto"></button>
+        <img id="prev" class="thumb" style="display:none" alt="">
+        <button class="btn btn-o" id="rmPhoto" type="button" style="display:none" onclick="clearPhoto()">✕</button>
+      </div>
+      <label data-t="solution"></label><textarea id="fS"></textarea>
+      <label data-t="status"></label>
+      <select id="fSt"><option value="OK">OK</option><option value="NG">NG</option><option value="GO">On going</option></select>
+      <label data-t="reporter"></label><input type="text" id="fBy" autocomplete="name">
+      <button class="btn btn-p" id="btnApply" onclick="apply()" data-t="apply"></button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ct"><span class="badge">2</span><span data-t="b2"></span></div>
+    <div class="cb"><div class="chips" id="chips"></div><div id="list"></div></div>
+  </div>
+</div>
+<div id="errBox"></div><div class="toast" id="toast"></div>
+<script>
+/* ตั้งค่า: ใส่ Database URL ของโปรเจกต์ Firebase ใหม่ */
+const FB = 'https://machine-e63df-default-rtdb.asia-southeast1.firebasedatabase.app';
+const POLL_MS = 4000;
+
+/* ===== ชั้นข้อมูล: คุยกับ Firebase ผ่าน REST =====
+   เขียน: POST /inbox (โปรแกรมโรงงานดึงไปลง SQL แล้วลบ)
+   อ่าน : GET /machines/{code}/... (สำเนาที่โปรแกรมโรงงานส่งกลับ) */
+const Store = {
+  async _get(p){ const r = await fetch(FB+'/'+p+'.json', {cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); },
+  async _post(d){ d.ts = {'.sv':'timestamp'}; const r = await fetch(FB+'/inbox.json', {method:'POST', body:JSON.stringify(d)}); if(!r.ok) throw new Error('HTTP '+r.status); return (await r.json()).name; },
+  getMachine(c){ return this._get('machines/'+c+'/info'); },
+  async listIssues(c){
+    const o = await this._get('machines/'+c+'/issues') || {};
+    return Object.keys(o).map(k => { const v = o[k]; v.id = k; v.log = v.log ? Object.values(v.log) : []; return v; })
+      .sort((a,b) => a.createdAt < b.createdAt ? -1 : 1);
+  },
+  getPhoto(c,id){ return this._get('machines/'+c+'/photos/'+id); },
+  addIssue(c,d){ return this._post({type:'new', machine:c, question:d.question, solution:d.solution, status:d.status, photo:d.photo||'', by:d.by}); },
+  updateStatus(c,id,status,by){ return this._post({type:'status', machine:c, issueKey:id, status:status, by:by}); }
+};
+
+const T = {
+  th:{ b1:'บันทึกปัญหา', b2:'สถานะ', question:'ปัญหา (Question)', photo:'รูปภาพ (Photo)', takePhoto:'📷 ถ่าย/เลือกรูป',
+       solution:'วิธีแก้ (Solution)', status:'สถานะ (Status)', reporter:'ชื่อผู้บันทึก', apply:'บันทึก (Apply)',
+       all:'ทั้งหมด', empty:'ยังไม่มีรายการ', solutionL:'วิธีแก้', history:'ประวัติสถานะ', change:'เปลี่ยนสถานะ', save:'บันทึกสถานะ',
+       needQ:'กรุณาระบุปัญหา', needBy:'กรุณาใส่ชื่อผู้บันทึก', saved:'ส่งแล้ว ✓ รอระบบโรงงานรับ', updated:'ส่งคำสั่งแล้ว ✓',
+       notFound:'ไม่พบเครื่องรหัสนี้', noPhoto:'ไม่มีรูป', loading:'กำลังโหลดรูป…', photoErr:'ไม่สามารถอ่านรูปได้',
+       askBy:'ชื่อผู้เปลี่ยนสถานะ?', pend:'⏳ รอซิงก์', netErr:'เชื่อมต่อไม่ได้', cfg:'ยังไม่ได้ตั้งค่า Firebase URL ใน index.html' },
+  en:{ b1:'Report an issue', b2:'Status', question:'Question (problem)', photo:'Photo', takePhoto:'📷 Take / choose photo',
+       solution:'Solution', status:'Status', reporter:'Reported by', apply:'Apply',
+       all:'All', empty:'No records yet', solutionL:'Solution', history:'Status history', change:'Change status', save:'Save status',
+       needQ:'Please describe the problem', needBy:'Please enter your name', saved:'Sent ✓ waiting for factory system',
+       updated:'Request sent ✓', notFound:'Machine code not found', noPhoto:'No photo', loading:'Loading photo…', photoErr:'Cannot read the image',
+       askBy:'Your name?', pend:'⏳ syncing', netErr:'Connection failed', cfg:'Firebase URL is not set in index.html' }
+};
+const STNAME = {OK:'OK', NG:'NG', GO:'On going'};
+let lang = localStorage.getItem('lang') || 'th';
+let machine = null, issues = [], filter = 'ALL', photoData = null, openId = null, sig = '';
+let pendingNew = [], pendingSt = {}, photoCache = {};
+
+const $ = id => document.getElementById(id);
+const t = k => T[lang][k] || k;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = iso => new Date(iso).toLocaleString(lang === 'th' ? 'th-TH' : 'en-GB', {dateStyle:'short', timeStyle:'short'});
+
+function setLang(l){
+  lang = l; localStorage.setItem('lang', l); document.documentElement.lang = l;
+  $('lTH').classList.toggle('on', l === 'th'); $('lEN').classList.toggle('on', l === 'en');
+  document.querySelectorAll('[data-t]').forEach(e => e.textContent = t(e.dataset.t));
+  renderList();
+}
+function toast(m){ const e = $('toast'); e.textContent = m; e.className = 'toast show'; clearTimeout(toast._t); toast._t = setTimeout(() => e.className = 'toast', 2800); }
+
+function compress(file, maxSide = 800, q = 0.6){
+  return new Promise((res, rej) => {
+    const fr = new FileReader(); fr.onerror = rej;
+    fr.onload = () => { const img = new Image(); img.onerror = rej;
+      img.onload = () => { const s = Math.min(1, maxSide / Math.max(img.width, img.height)), c = document.createElement('canvas');
+        c.width = Math.round(img.width*s); c.height = Math.round(img.height*s);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); res(c.toDataURL('image/jpeg', q)); };
+      img.src = fr.result; };
+    fr.readAsDataURL(file);
+  });
+}
+$('fPhoto').addEventListener('change', async e => {
+  const f = e.target.files[0]; if(!f) return;
+  try { photoData = await compress(f); $('prev').src = photoData; $('prev').style.display = ''; $('rmPhoto').style.display = ''; }
+  catch(err){ toast(t('photoErr')); }
+});
+function clearPhoto(){ photoData = null; $('fPhoto').value = ''; $('prev').style.display = 'none'; $('rmPhoto').style.display = 'none'; }
+
+async function apply(){
+  const q = $('fQ').value.trim(), by = $('fBy').value.trim();
+  if(!q){ toast(t('needQ')); $('fQ').focus(); return; }
+  if(!by){ toast(t('needBy')); $('fBy').focus(); return; }
+  $('btnApply').disabled = true;
+  try {
+    const d = {question:q, solution:$('fS').value.trim(), status:$('fSt').value, photo:photoData, by:by};
+    const key = await Store.addIssue(machine.code, d);
+    pendingNew.push({id:key, question:d.question, solution:d.solution, status:d.status, photo:d.photo, by:by, createdAt:new Date().toISOString(), log:[], pending:true});
+    localStorage.setItem('reporter', by);
+    $('fQ').value = ''; $('fS').value = ''; $('fSt').value = 'OK'; clearPhoto();
+    toast(t('saved')); sig = ''; await reload();
+  } catch(e){ toast(t('netErr') + ': ' + e.message); }
+  $('btnApply').disabled = false;
+}
+
+async function reload(){
+  const server = await Store.listIssues(machine.code);
+  const ids = {}; server.forEach(i => ids[i.id] = i);
+  pendingNew = pendingNew.filter(p => !ids[p.id]);
+  Object.keys(pendingSt).forEach(id => { if(!ids[id] || ids[id].status === pendingSt[id]) delete pendingSt[id]; });
+  const s = JSON.stringify([server, pendingNew.map(p => p.id), pendingSt]);
+  if(s === sig) return; sig = s;
+  issues = server.concat(pendingNew); renderList();
+}
+
+function renderList(){
+  if(!machine) return;
+  const view = issues.map(i => { const st = pendingSt[i.id]; return st ? Object.assign({}, i, {status:st, pending:true}) : i; });
+  const counts = {ALL:view.length, OK:0, NG:0, GO:0};
+  view.forEach(i => counts[i.status]++);
+  $('chips').innerHTML = ['ALL','NG','GO','OK'].map(s =>
+    `<button class="chip ${filter===s?'on':''}" onclick="setFilter('${s}')">${s==='ALL'?t('all'):STNAME[s]} (${counts[s]})</button>`).join('');
+  const rows = view.slice().reverse().filter(i => filter === 'ALL' || i.status === filter);
+  if(!rows.length){ $('list').innerHTML = `<div class="empty">${t('empty')}</div>`; return; }
+  $('list').innerHTML = rows.map(i => {
+    const no = view.indexOf(i) + 1;
+    const opts = ['OK','NG','GO'].map(s => `<option value="${s}" ${i.status===s?'selected':''}>${STNAME[s]}</option>`).join('');
+    const log = (i.log||[]).map(l => `${fmt(l.at)} · ${esc(l.by)}: ${STNAME[l.from]} → ${STNAME[l.to]}`).join('<br>');
+    const ph = i.photo || photoCache[i.id];
+    const photo = ph ? `<img class="big" src="${ph}" alt="">` : `<div class="k">${i.hasPhoto ? t('loading') : t('noPhoto')}</div>`;
+    return `<div class="item ${openId===i.id?'open':''}">
+      <div class="item-h" onclick="toggle('${i.id}')">
+        <span class="n">#${no}</span>
+        <div class="q"><b>${esc(i.question)}</b><small>${fmt(i.createdAt)} · ${esc(i.by)}</small></div>
+        <div style="text-align:right"><span class="st ${i.status}">${STNAME[i.status]}</span>${i.pending?`<div class="wait">${t('pend')}</div>`:''}</div>
+      </div>
+      <div class="item-d">${photo}
+        <div class="k">${t('solutionL')}</div><div class="v">${esc(i.solution) || '-'}</div>
+        ${log ? `<div class="log"><b>${t('history')}</b><br>${log}</div>` : ''}
+        <div class="chg"><select id="ns${i.id}">${opts}</select><button class="btn btn-o" onclick="changeStatus('${i.id}')">${t('save')}</button></div>
+      </div></div>`;
+  }).join('');
+}
+function setFilter(s){ filter = s; renderList(); }
+async function toggle(id){
+  openId = (openId === id) ? null : id; renderList();
+  const it = issues.find(i => i.id === id);
+  if(openId && it && it.hasPhoto && !photoCache[id]){
+    try { photoCache[id] = await Store.getPhoto(machine.code, id); renderList(); } catch(e){}
+  }
+}
+async function changeStatus(id){
+  const ns = $('ns' + id).value;
+  let by = $('fBy').value.trim() || localStorage.getItem('reporter') || '';
+  if(!by){ by = (prompt(t('askBy')) || '').trim(); if(!by) return; localStorage.setItem('reporter', by); $('fBy').value = by; }
+  const cur = issues.find(i => i.id === id);
+  if((pendingSt[id] || (cur && cur.status)) === ns) return;
+  try { await Store.updateStatus(machine.code, id, ns, by); pendingSt[id] = ns; toast(t('updated')); sig = ''; await reload(); }
+  catch(e){ toast(t('netErr') + ': ' + e.message); }
+}
+
+(async function init(){
+  const code = (new URLSearchParams(location.search).get('code') || 'MC-00015').trim().toUpperCase();
+  setLang(lang);
+  if(FB.indexOf('YOUR-PROJECT') >= 0){ $('errBox').innerHTML = `<div class="err">${t('cfg')}</div>`; return; }
+  try { machine = await Store.getMachine(code); } catch(e){ $('errBox').innerHTML = `<div class="err">${t('netErr')}: ${esc(e.message)}</div>`; return; }
+  if(!machine){ $('errBox').innerHTML = `<div class="err">${t('notFound')}: ${esc(code)}</div>`; return; }
+  $('mProd').textContent = 'Product ' + machine.product; $('mName').textContent = machine.name; $('mCode').textContent = machine.code;
+  document.title = machine.name + ' · ' + machine.code;
+  $('fBy').value = localStorage.getItem('reporter') || '';
+  $('app').style.display = '';
+  await reload().catch(() => {});
+  setInterval(() => { if(!document.hidden) reload().catch(() => {}); }, POLL_MS);
+})();
+</script>
+</body>
+</html>

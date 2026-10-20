@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="th"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR Label Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+body{font-family:'Segoe UI',Tahoma,sans-serif;background:#F4F8FB;margin:0;padding:20px;color:#1A202C}.box{max-width:520px;margin:0 auto}
+h2{margin:0 0 14px;color:#2C79D2}label{display:block;font-size:12px;font-weight:700;color:#718096;margin:10px 0 4px}
+input{width:100%;box-sizing:border-box;padding:9px;border:1px solid #E2E8F0;border-radius:8px;font:inherit}
+.row{display:flex;gap:10px}.row>div{flex:1}
+button{margin-top:14px;padding:11px 20px;border:none;border-radius:10px;background:linear-gradient(120deg,#2C79D2,#0D8FCF);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+.label{margin:20px auto 0;width:300px;border:2px solid #1A202C;border-radius:10px;padding:14px;text-align:center;background:#fff}
+.nm{font-size:22px;font-weight:700}.cd{font-size:15px;font-family:Consolas,monospace;margin:2px 0 8px}.pd{font-size:13px;color:#555}.scan{font-size:12px;margin-top:6px}
+#qr{display:flex;justify-content:center;margin:8px 0}#url{font-size:11px;color:#718096;word-break:break-all;margin-top:8px}
+@media print{body{background:#fff;padding:0}.box>*:not(#out){display:none}.label{margin:0}#url{display:none}}
+</style></head><body><div class="box">
+<h2>สร้าง QR ป้ายเครื่อง / QR Label</h2>
+<label>ลิงก์หน้าเว็บ (Base URL ของ index.html)</label><input id="base">
+<div class="row"><div><label>Product</label><input id="prod" value="A19"></div><div><label>Machine code</label><input id="code" value="MC-00015"></div></div>
+<label>Machine name</label><input id="name" value="USW MC#1">
+<button onclick="gen()">สร้าง QR</button>
+<button onclick="window.print()" style="background:#fff;color:#0D8FCF;border:1.5px solid #0D8FCF">🖨 พิมพ์</button>
+<div id="out" class="label"><div class="nm" id="lName"></div><div class="cd" id="lCode"></div><div id="qr"></div><div class="pd" id="lProd"></div>
+<div class="scan">สแกนเพื่อบันทึก/ดูสถานะ · Scan to report / view status</div><div id="url"></div></div></div>
+<script>
+document.getElementById('base').value = location.href.replace(/qr\.html.*$/, 'index.html');
+function gen(){
+  const g = id => document.getElementById(id), base = g('base').value.trim(), code = g('code').value.trim().toUpperCase();
+  const url = base + (base.includes('?') ? '&' : '?') + 'code=' + encodeURIComponent(code);
+  g('lName').textContent = g('name').value; g('lCode').textContent = code; g('lProd').textContent = 'Product ' + g('prod').value; g('url').textContent = url;
+  const el = g('qr'); el.innerHTML = ''; new QRCode(el, {text:url, width:220, height:220, correctLevel:QRCode.CorrectLevel.M});
+}
+gen();
+</script></body></html>
